@@ -1,25 +1,26 @@
 function express() {
   var http = require("http");
+  var Layer = require("./lib/layer.js");
   function app(req, res) {
     var i = 0;
-    var middleware;
+    var layer;
 
     // should statements after this function execute?
     var next = function(err) {
-      middleware = app.stack[i++];
+      layer = app.stack[i++];
       if (!err) {
-        while (middleware && middleware.length === 4)
-          middleware = app.stack[i++];
-        if (middleware) middleware(req, res, next); 
+        while (layer && (layer.handle.length === 4 || !layer.match(req.url)))
+          layer = app.stack[i++];
+        if (layer) layer.handle(req, res, next); 
         else {
           res.statusCode = 404;
           res.end();
         }
       }
       else {
-        while (middleware && middleware.length !== 4) 
-          middleware = app.stack[i++];
-        if (middleware) middleware(err, req, res, next);
+        while (layer && (layer.handle.length !== 4 || !layer.match(req.url))) 
+          layer = app.stack[i++];
+        if (layer) layer.handle(err, req, res, next);
         else throw err; 
       }
     };
@@ -27,20 +28,35 @@ function express() {
     try {
       next();
     } catch (err) {
-      res.statusCode = 500;
-      res.end();
+      try {
+        next(err);
+      } catch (unhandledErr) {
+        res.statusCode = 500;
+        res.end();
+      }
     }
   } 
   app.listen = function(port, callback) {
     return http.createServer(this).listen(port, callback);
-  }
-  app.use = function(middleware) {
+  };
+  app.use = function() {
+    var path, middleware;
+    var layer;
     var i, len;
+    if (arguments.length === 1) {
+      path = "/";
+      middleware = arguments[0];
+    }
+    else if (arguments.length === 2) {
+      path = arguments[0];
+      middleware = arguments[1];
+    }
+    layer = new Layer(path, middleware);
     if (middleware.stack instanceof Array) {
       for (i = 0, len = middleware.stack.length; i < len; i++)
         app.stack.push(middleware.stack[i]);
-    } else app.stack.push(middleware);
-  }
+    } else app.stack.push(layer);
+  };
   app.stack = [];
   return app;
 }

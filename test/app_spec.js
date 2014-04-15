@@ -241,3 +241,128 @@ describe("app", function() {
   });
 });
 
+describe("Simple Request Path Matcher", function() {
+
+  describe("Implement Layer class and the match method", function() {
+    it("should match path", function() {
+      var Layer = require("../lib/layer.js");
+      var layer = new Layer("/foo", function() {});
+      expect(layer.match("/bar")).to.be.undefined;
+      expect(layer.match("/foo")).to.have.property("path", "/foo");
+      expect(layer.match("/foo/bar")).to.have.property("path", "/foo");
+    });
+  });
+
+  describe("Implement app.use should create a Layer and add it to app.stack", function() {
+    var Layer, layer;
+    var app;
+    beforeEach(function() {
+      Layer = require("../lib/layer.js");
+      layer = new Layer("/foo", function() {});
+      app = express();
+      app.use(function() {});
+      app.use("/foo", function() {});
+    });
+
+    it("length of app.stack should larger than zero", function() {
+      expect(app.stack.length).to.eql(2);
+    });
+
+    it("elements of app.stack should be instance of Layer", function() {
+      expect(app.stack[0]).to.be.instanceof(Layer);
+      expect(app.stack[1]).to.be.instanceof(Layer);
+    });
+
+    it("first layer's path should be /", function() {
+      expect(app.stack[0].match("/")).to.have.property("path", "/");
+    });
+
+    it("second layer's path should be /foo", function() {
+      expect(app.stack[1].match("/foo")).to.have.property("path", "/foo");
+    });
+  });
+
+  describe("The middlewares called should match request path", function() {
+    var app;
+    beforeEach(function() {
+      app = new express();
+      app.use("/foo", function(req, res, next) {
+        res.end("foo");
+      });
+      app.use("/", function(req, res) {
+        res.end("root");
+      });
+    });
+
+    it("returns root for GET /", function(done) {
+      request(app).get("/")
+        .expect("root")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("returns foo for GET /foo", function(done) {
+      request(app).get("/foo")
+        .expect("foo")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("returns foo for GET /foo/bar", function(done) {
+      request(app).get("/foo/bar")
+        .expect("foo")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+  });
+
+  describe("The error handlers called should match request path", function() {
+    var app;
+    beforeEach(function() {
+      app = new express();
+      app.use("/foo", function(req, res, next) {
+        throw "boom!";
+      });
+      app.use("/foo/a", function(err, req, res, next) {
+        res.end("error handled /foo/a");
+      });
+      app.use("/foo/b", function(err, req, res, next) {
+        res.end("error handled /foo/b");
+      });
+    });
+
+    it("returns error handled /foo/a for GET /foo/a", function(done) {
+      request(app).get("/foo/a")
+        .expect("error handled /foo/a")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("returns error handled /foo/b for GET /foo/b", function(done) {
+      request(app).get("/foo/b")
+        .expect("error handled /foo/b")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("returns 500 for GET /foo", function(done) {
+      request(app).get("/foo")
+        .expect(500)
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+  });
+  
+});
