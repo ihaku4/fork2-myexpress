@@ -364,5 +364,61 @@ describe("Simple Request Path Matcher", function() {
         });
     });
   });
+});
   
+describe("Fancy Request Path Matcher", function() {
+  describe("Implement Path Parameters Extraction", function() {
+    var layer, Layer;
+    beforeEach(function() {
+      Layer = require("../lib/layer.js");
+      layer = new Layer("/foo/:a/:b", function() {});
+    });
+
+    it("should return undefined for /foo", function() {
+      expect(layer.match("/foo")).to.be.undefined;
+    });
+
+    it("should return undefined for /foo/apple", function() {
+      expect(layer.match("/foo/apple")).to.be.undefined;
+    });
+
+    it("should return object for /foo/apple/xiaomi", function() {
+      expect(layer.match("/foo/apple/xiaomi")).to.deep.equal({path: "/foo/apple/xiaomi", params: {a: "apple", b: "xiaomi"}});
+    });
+
+    it("should return object for /foo/apple/xiaomi/htc", function() {
+      expect(layer.match("/foo/apple/xiaomi/htc")).to.deep.equal({path: "/foo/apple/xiaomi", params: {a: "apple", b: "xiaomi"}});
+    });
+  });
+
+  describe("Implement req.params", function() {
+    var app;
+    beforeEach(function() {
+      app = new express();
+      app.use("/foo/:a", function(req, res, next) {
+        res.end(req.params.a);
+      });
+      app.use("/foo", function(req, res, next) {
+        res.end(""+req.params.a);
+      });
+    });
+
+    it("should return parameter when a parameter is given", function(done) {
+      request(app).get("/foo/this_is_a_parameter")
+        .expect("this_is_a_parameter")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("should return undefined when a parameter is missing", function(done) {
+      request(app).get("/foo")
+        .expect("undefined")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+  });
 });

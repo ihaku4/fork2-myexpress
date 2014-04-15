@@ -11,7 +11,10 @@ function express() {
       if (!err) {
         while (layer && (layer.handle.length === 4 || !layer.match(req.url)))
           layer = app.stack[i++];
-        if (layer) layer.handle(req, res, next); 
+        if (layer) {
+          req.params = layer.match(req.url).params;
+          layer.handle(req, res, next); 
+        }
         else {
           res.statusCode = 404;
           res.end();
@@ -20,7 +23,10 @@ function express() {
       else {
         while (layer && (layer.handle.length !== 4 || !layer.match(req.url))) 
           layer = app.stack[i++];
-        if (layer) layer.handle(err, req, res, next);
+        if (layer) {
+          req.params = layer.match(req.url).params;
+          layer.handle(err, req, res, next);
+        }
         else throw err; 
       }
     };
