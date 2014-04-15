@@ -421,4 +421,41 @@ describe("Fancy Request Path Matcher", function() {
         });
     });
   });
+
+  describe("Implement Prefix Path Trimming", function() {
+    var app;
+    beforeEach(function() {
+      app = new express();
+      var subApp = new express();
+      subApp.use("/bar", function(req, res) {
+        res.end("embedded app: " + req.url);
+      });
+      app.use("/foo", subApp);
+      app.use("/foo", function(req, res) {
+        res.end("handler: " + req.url);
+      });
+    });
+
+    it("app should have the handle method", function() {
+      expect(app.handle).to.be.instanceof(Function);
+    });
+
+    it("Prefix path trimming for embedded app", function(done) {
+      request(app).get("/foo")
+        .expect("handler: /foo")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+
+    it("Prefix path trimming for embedded app", function(done) {
+      request(app).get("/foo/bar")
+        .expect("embedded app: /foo/bar")
+        .end(function(err, res) {
+          if (err) return done(err);
+          done();
+        });
+    });
+  });
 });

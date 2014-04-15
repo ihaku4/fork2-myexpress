@@ -4,15 +4,17 @@ function express() {
   function app(req, res) {
     var i = 0;
     var layer;
+    var url = req.url;
 
     // should statements after this function execute?
     var next = function(err) {
       layer = app.stack[i++];
       if (!err) {
-        while (layer && (layer.handle.length === 4 || !layer.match(req.url)))
+        while (layer && (layer.handle.length === 4 || !layer.match(url)))
           layer = app.stack[i++];
         if (layer) {
-          req.params = layer.match(req.url).params;
+          req.params = layer.match(url).params;
+          req.url = layer.getPath();
           layer.handle(req, res, next); 
         }
         else {
@@ -21,10 +23,11 @@ function express() {
         }
       }
       else {
-        while (layer && (layer.handle.length !== 4 || !layer.match(req.url))) 
+        while (layer && (layer.handle.length !== 4 || !layer.match(url))) 
           layer = app.stack[i++];
         if (layer) {
-          req.params = layer.match(req.url).params;
+          req.params = layer.match(url).params;
+          req.url = layer.getPath();
           layer.handle(err, req, res, next);
         }
         else throw err; 
@@ -59,11 +62,14 @@ function express() {
     }
     layer = new Layer(path, middleware);
     if (middleware.stack instanceof Array) {
-      for (i = 0, len = middleware.stack.length; i < len; i++)
+      for (i = 0, len = middleware.stack.length; i < len; i++) {
+        middleware.stack[i].setPathPrefix(layer.getPath());
         app.stack.push(middleware.stack[i]);
+      }
     } else app.stack.push(layer);
   };
   app.stack = [];
+  app.handle = function() {};
   return app;
 }
 
