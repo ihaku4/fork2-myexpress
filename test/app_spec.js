@@ -275,6 +275,7 @@ describe("Simple Request Path Matcher", function() {
 
     it("first layer's path should be /", function() {
       expect(app.stack[0].match("/")).to.have.property("path", "/");
+//      expect(app.stack[0].match("/")).to.have.property("path", "");
     });
 
     it("second layer's path should be /foo", function() {
@@ -451,7 +452,8 @@ describe("Fancy Request Path Matcher", function() {
 
     it("Prefix path trimming for embedded app", function(done) {
       request(app).get("/foo/bar")
-        .expect("embedded app: /foo/bar")
+//        .expect("embedded app: /foo/bar")
+        .expect("embedded app: /bar")
         .end(function(err, res) {
           if (err) return done(err);
           done();
