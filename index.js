@@ -1,6 +1,9 @@
 function express() {
   var http = require("http");
   var Layer = require("./lib/layer.js");
+  var makeRoute = require("./lib/route.js");
+  var methods = require("methods");
+
   function app() {
     var req, res, parentNext, parentErr;
     var appArguments = arguments;
@@ -65,24 +68,30 @@ function express() {
     return http.createServer(this).listen(port, callback);
   };
   app.use = function() {
-    var path, middleware;
+    var path, middleware, isPrefixMatching;
     var layer;
     var i, len;
     if (arguments.length === 1) {
       path = "/";
       middleware = arguments[0];
     }
-    else if (arguments.length === 2) {
+    else if (arguments.length >= 2) {
       path = arguments[0];
       middleware = arguments[1];
+      isPrefixMatching = arguments[2] || {end: false};
     }
-    layer = new Layer(path, middleware);
+    layer = new Layer(path, middleware, isPrefixMatching);
     app.stack.push(layer);
   };
   app.stack = [];
   app.handle = function() {
     app.apply(this, arguments);
   };
+  methods.forEach(function(method) {
+    app[method] = function(path, middleware) {
+      app.use(path, makeRoute(method.toUpperCase(), middleware), {end: true});
+    };
+  });
   return app;
 }
 

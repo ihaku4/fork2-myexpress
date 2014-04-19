@@ -461,3 +461,29 @@ describe("Fancy Request Path Matcher", function() {
     });
   });
 });
+
+describe("http verbs", function() {
+  describe("create the makeRoute(verb, handler) constructor", function() {
+    it("should return function(req, res, next).", function() {
+      var verbMatching = require("../lib/route.js");
+      var route = verbMatching("get", function() {});
+      expect(route.length).to.eql(3);
+    });
+  });
+
+  describe("implement app.get", function() {
+    var app;
+    beforeEach(function() {
+      app = express();
+      app.get("/foo", function(req, res) {
+        res.end("foo");
+      });
+    });
+
+    it("should response for GET request", function(done) {
+      request(app).get("/foo")
+        .expect("foo")
+        .end(done);
+    });
+  });
+});
