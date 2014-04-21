@@ -487,3 +487,26 @@ describe("http verbs", function() {
     });
   });
 });
+
+describe("Route Chaining", function() {
+  describe("implement multiple handlers", function() {
+    var route;
+    var handler1 = function() {};
+    var handler2 = function() {};
+    beforeEach(function() {
+      var makeRoute = require("../lib/route.js");
+      route = makeRoute();
+      route.use("get", handler1);
+      route.use("post", handler2);
+    });
+
+    it("adds multiple handlers to route", function() {
+      expect(route.stack.length).to.eql(2);
+    });
+
+    it("pushes action object to the stack", function() {
+      expect(route.stack[0]).to.instanceof(Object);
+      expect(route.stack[1]).to.instanceof(Object);
+    });
+  });
+});

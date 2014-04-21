@@ -48,6 +48,7 @@ function express() {
         if (err) throw err;
         res.statusCode = 404;
         res.end();
+        console.log(404);
       }
     };
 
@@ -89,9 +90,15 @@ function express() {
   };
   methods.forEach(function(method) {
     app[method] = function(path, middleware) {
-      app.use(path, makeRoute(method.toUpperCase(), middleware), {end: true});
+      app.route(path)[method](middleware);
+      return app;
     };
   });
+  app.route = function(path) {
+    var route = makeRoute();
+    app.use(path, route, {end: true});
+    return route;
+  }
   return app;
 }
 
